@@ -89,3 +89,85 @@ EL表达式主要是为了替换jsp中的表达式脚本
           </c:otherwise>
       </c:choose>
   ```
+
+#### <c:forEach />
+
+- 用于遍历输出使用
+
+- begin属性：设置开始的索引
+
+- end属性：设置结束的索引
+
+- items属性：表示遍历的数据源
+
+- var属性：表示循环的变量，或者表示遍历的数据
+
+- step属性：表示遍历的步长值
+
+- varStatus属性：表示当前遍历到的数据状态
+  
+  ![](JSTL标签库.assets/2022-06-24-14-50-00-image.png)
+
+- 示例1：遍历1到10
+  
+  ```java
+      <c:forEach begin="1" end="10" var="i">
+          ${i}
+      </c:forEach>
+  ```
+
+- 示例2：遍历数组
+  
+  ```java
+      <%
+          request.setAttribute("arr", new String[]{"张三", "李四", "王五"});
+      %>
+      <c:forEach items="${requestScope.arr}" var="value">
+          ${value}
+      </c:forEach>
+  ```
+
+- 示例3：遍历Map集合
+  
+  ```java
+      <%
+          Map<String, Object> map = new HashMap<>();
+          map.put("name", "张三");
+          map.put("age", 18);
+          map.put("sex", "男");
+          request.setAttribute("map", map);
+      %>
+      <c:forEach items="${requestScope.map}" var="entry">
+          key:${entry.key}, value:${entry.value}
+      </c:forEach>
+  ```
+
+- 示例4：遍历List集合
+  
+  ```java
+      <%
+          List<Student> list = new ArrayList<>();
+          for (int i = 1; i <= 10; i++) {
+              list.add(new Student(i, "张三" + i, "123456" + i));
+          }
+          request.setAttribute("list", list);
+      %>
+      <c:forEach items="${requestScope.list}" var="student">
+          编号：${student.id} ,用户名：${student.username} ,密码：${student.password}<br>
+      </c:forEach>
+  ```
+
+- 示例5：所有属性组合使用
+  
+  ```java
+      <%
+          List<Student> list = new ArrayList<>();
+          for (int i = 1; i <= 10; i++) {
+              list.add(new Student(i, "张三" + i, "123456" + i));
+          }
+          request.setAttribute("list", list);
+      %>
+      <c:forEach begin="2" end="8" step="2" varStatus="status" items="${requestScope.list}" var="student">
+          编号：${student.id} ,用户名：${student.username} ,密码：${student.password}, status:${status.index}<br>
+      </c:forEach>
+  ```

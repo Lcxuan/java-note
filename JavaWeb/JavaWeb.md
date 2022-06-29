@@ -744,3 +744,133 @@ response.sendRedirect("http://localhost:8080/web_1/response2");
         <listener-class>com.lcxuan.listener.MyServletContextListenerIml</listener-class>
     </listener>
     ```
+
+### 文件上传和下载
+
+#### 文件上传
+
+- 需要有一个form标签，需要post请求，enctype属性必须为multipart/form-data值
+
+- form标签中使用<input type=file>添加上传的文件
+
+- 编写服务器代码接收，处理上传的数据
+
+- encType=multipart/form-data 表示提交的数据，以多段（每一个表单项一个数据段）的形式进行拼接，然后以二进制流的形式发送给服务器
+  
+  ![](JavaWeb.assets/2022-06-24-16-18-16-image.png)
+
+前端代码示例：
+
+```html
+<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<html>
+<head>
+    <title>Title</title>
+</head>
+<body>
+    <form action="http://localhost:8080/web4/upload" method="post" enctype="multipart/form-data">
+        用户名：<input type="text" name="username"><br>
+        头像：<input type="file" name="header"><br>
+        <input type="submit" value="上传头像">
+    </form>
+</body>
+</html>
+```
+
+服务器代码
+
+- 需要导入两个jar包
+  
+  ![](JavaWeb.assets/2022-06-24-16-30-30-image.png)
+
+- 以上两个jar包中，常用的类：
+
+- ServletFileUpload类，用于解析上传的数据
+  
+  - boolean **isMultipartContent(HttpServletRequest request)**：判断当前上传的数据格式是否是多段的格式
+  
+  - List<FileItem> **parseRequest(HttpServletRequest request)**：解析上传的数据
+
+- FileItem类，表示每一个表单项
+  
+  - boolean **isFormField()**：判断当前这个表单项，是否是普通的表单项，还是上传文件的表单性，true是普通表单性，false是上传的表单项
+  
+  - String **getFieldName()**：获取表单项的name属性值
+  
+  - String **getString()**：获取当前表单项的值
+  
+  - String **getName()**：获取上传的文件名
+  
+  - void **write(file)**：将上传的文件写入到 参数file 指定的磁盘位置
+  
+  ```java
+  public class UploadServlet extends HttpServlet {
+      protected void doPost(HttpServletRequest request, HttpServletResponse response){
+          // 判断上传的数据是否是多段数据
+          if (ServletFileUpload.isMultipartContent(request)){
+              // 创建FileItemFactory的工厂实现类
+              FileItemFactory fileItemFactory = new DiskFileItemFactory();
+              // 创建用于解析上传数据的工具类
+              ServletFileUpload servletFileUpload = new ServletFileUpload(fileItemFactory);
+              try {
+                  // 解析上传的数据，获取每一个表单项FileItem
+                  List<FileItem> fileItems = servletFileUpload.parseRequest(request);
+                  for (FileItem fileItem : fileItems) {
+                      if (fileItem.isFormField()){
+                          // 普通表单项
+                          System.out.println("表单项的name属性值：" + fileItem.getFieldName());
+                          System.out.println("表单项的value属性值：" + fileItem.getString("UTF-8"));
+                      }else {
+                          // 上传的文件
+                          System.out.println("表单项的name属性值：" + fileItem.getFieldName());
+                          System.out.println("上传的文件名" + fileItem.getName());
+  
+                          fileItem.write(new File("E:\\" + fileItem.getName()));
+                      }
+                  }
+              } catch (Exception e) {
+                  e.printStackTrace();
+              }
+          }
+      }
+  }
+  ```
+
+#### 文件下载
+
+导入包：
+
+![](JavaWeb.assets/2022-06-24-17-17-36-image.png)
+
+```java
+public class DownloadServlet extends HttpServlet {
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        // 1.获取下载的文件名
+        String downloadFilename = "m01.jpg";
+
+        // 2.读取要下载的文件内容
+        // 获取文件的输入流
+        InputStream inputStream = getServletContext().getResourceAsStream("/file/" + downloadFilename);
+        // 获取文件的输出流
+        ServletOutputStream outputStream = response.getOutputStream();
+
+        // 3.在回传前，通过响应头告诉客户端返回的数据类型
+        // 获取要下载的文件类型
+        String mimeType = getServletContext().getMimeType("/file/" + downloadFilename);
+        System.out.println("文件类型：" + mimeType);
+        //设置返回的数据类型
+        response.setContentType(mimeType);
+
+        // 4.设置客户端收到的数据是用于下载使用
+        // Content-Disposition响应头，表示收到的数据怎么处理
+        // attachment表示附件，表示下载使用
+        // filename表示执行下载的文件名
+        response.setHeader("Content-Disposition", "attachment;filename=" + URLEncoder.encode(downloadFilename, "UTF-8"));
+
+        // 5.把加载的文件内容回传给客户端
+        // 读取输入流的所有数据，将数据输出给输入流
+        IOUtils.copy(inputStream, outputStream);
+    }
+}
+
+```
