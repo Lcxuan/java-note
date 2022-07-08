@@ -874,3 +874,260 @@ public class DownloadServlet extends HttpServlet {
 }
 
 ```
+
+### Cookie和Session
+
+#### Cookie
+
+- Cookie是Servlet发送到Web浏览器的少量信息，这些信息是由浏览器保存的，然后发送到服务器中
+
+- 每个Cookie的大小不能超过4KB
+
+- **注意：** Cookie的值不包括空格、方括号、圆括号、等号、逗号、双引号、斜杠、问号、at符号、冒号和分号，中文也不支持，如果需要这些值做Cookie的值需要使用BASE64编码
+
+##### 创建Cookie
+
+![](JavaWeb.assets/2022-07-02-21-37-54-image.png)
+
+```java
+@Override
+protected void doGet(HttpServletRequest req, HttpServletResponse resp) {
+    // 1. 创建Cookie对象
+    Cookie cookie = new Cookie("name", "张三");
+    // 2. 通知客户端保存Cookie
+    resp.addCookie(cookie);
+}
+```
+
+##### 浏览器中查看Cookie
+
+按F12打开控制台 -> 点击"应用"选项栏 -> Cookie
+
+![](JavaWeb.assets/2022-07-02-21-41-19-image.png)
+
+##### 获取Cookie
+
+只能获取所有的Cookie值
+
+```java
+@Override
+protected void doGet(HttpServletRequest req, HttpServletResponse resp) {
+    Cookie[] cookies = req.getCookies();
+    for (Cookie cookie : cookies) {
+        System.out.println("Cookie名：" + cookie.getName() + ", Cookie值：" + cookie.getValue());
+    }
+}
+```
+
+封装获取单个Cookie的方法
+
+```java
+public class CookieUtils {
+    /**
+     * 查找指定的Cookie
+     * @param name Cookie名
+     * @param cookies Cookie数组
+     * @return
+     */
+    public static Cookie getCookie(String name, Cookie[] cookies){
+        if (name == null || cookies == null || cookies.length == 0){
+            return null;
+        }
+        for (Cookie cookie : cookies) {
+            if (name.equals(cookie.getName())){
+                return cookie;
+            }
+        }
+        return null;
+    }
+}
+```
+
+##### 修改Cookie的值
+
+方法一：覆盖原先的Cookie值
+
+1. 先创建一个要修改的同名的Cookie对象，并同时赋予新的Cookie值
+
+2. 调用response.addCookie(Cookie);
+   
+   ```java
+   @Override
+   protected void doGet(HttpServletRequest req, HttpServletResponse resp) {
+       // 1. 先创建一个要修改的同名的Cookie对象，并同时赋予新的Cookie值
+       Cookie cookie = new Cookie("name", "新的值");
+       // 2. 调用response.addCookie(Cookie);
+       resp.addCookie(cookie);
+   }
+   ```
+
+方法二：
+
+1. 先查找需要修改的Cookie对象
+
+2. 调用setValue()方法赋予新的Cookie值
+
+3. 调用response.addCookie(Cookie);
+   
+   ```java
+   @Override
+   protected void doGet(HttpServletRequest req, HttpServletResponse resp) {
+       // 1. 先查找需要修改的Cookie对象
+       Cookie cookie = CookieUtils.getCookie("name", req.getCookies());
+       if (cookie != null){
+           // 2. 调用setValue()方法赋予新的Cookie值
+           cookie.setValue("新的值");
+           // 3. 调用response.addCookie(Cookie);
+           resp.addCookie(cookie);
+       }
+   }
+   ```
+
+##### Cookie生命周期
+
+用于控制Cookie什么时候被销毁（即删除）
+
+使用setMaxAge()方法
+
+- 正数：表示在指定的秒数后过期（即删除）
+
+- 负数：表示浏览器关闭，Cookie就会删除，默认为 -1
+
+- 0：表示立即删除Cookie
+  
+  ```java
+  @Override
+  protected void doGet(HttpServletRequest req, HttpServletResponse resp) {
+      Cookie cookie = new Cookie("name", "张三");
+      cookie.setMaxAge(3600);
+      resp.addCookie(cookie);
+  }
+  ```
+
+删除指定的Cookie
+
+```java
+@Override
+protected void doGet(HttpServletRequest req, HttpServletResponse resp) {
+    Cookie cookie = CookieUtils.getCookie("name", req.getCookies());
+    if (cookie != null){
+        cookie.setMaxAge(0);
+        resp.addCookie(cookie);
+    }
+}
+```
+
+##### path属性
+
+可以有效的过滤哪些Cookie可以发送给服务器，哪些不发
+
+path属性是通过请求的地址来进行有效的过滤
+
+```java
+@Override
+protected void doGet(HttpServletRequest req, HttpServletResponse resp) {
+    Cookie cookie = new Cookie("name", "张三");
+    cookie.setPath(req.getContextPath() + "/abc");
+    resp.addCookie(cookie);
+}
+```
+
+#### Session（会话）
+
+- Session是一个接口（HttpSession）
+
+- 用来维护一个客户端（即浏览器）和服务器之间关联的一种技术
+
+- 每个客户端都有自己的一个Session会话
+
+- Session会话中，经常用来保存用户登录之后的信息
+
+- 每个Session会话中都会有一个身份证号，即ID，并且是唯一的，通过getId()获取
+
+##### 创建和获取Session
+
+通过request.getSession()方法
+
+- 第一个调用是：创建Session会话
+
+- 之后调用都是获取Session会话对象
+
+isNew() 方法判断是否是刚创建出来的Session对象
+
+```java
+@Override
+protected void doGet(HttpServletRequest req, HttpServletResponse resp)  throws ServletException, IOException  {
+    // 创建和获取Session会话对象
+    HttpSession session = req.getSession();
+    // 判断当前Session会话对象，是否是新创建出来的
+    boolean isNew = session.isNew();
+    // 获取会话唯一标识
+    String sessionId = session.getId();
+
+    System.out.println("SessionId：" + sessionId);
+    System.out.println("Session是否是新创建：" + isNew);
+}
+```
+
+往Session域中存储数据：
+
+```java
+@Override
+protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    req.getSession().setAttribute("name", "张三");
+}
+```
+
+获取Session域中的数据：
+
+```java
+@Override
+protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    String name = (String) req.getSession().getAttribute("name");
+    System.out.println("name:" + name);
+}
+```
+
+##### Session生命周期
+
+Session默认生命周期时长：1800秒
+
+设置Session生命周期：通过 setMaxInactiveInterval() 方法
+
+```java
+@Override
+protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    // 获取Session对象
+    HttpSession session = req.getSession();
+    // 设置当前Session 10秒后超时
+    session.setMaxInactiveInterval(10);
+}
+```
+
+获取Session生命周期：通过 getMaxInactiveInterval() 方法
+
+```java
+@Override
+protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    req.getSession().getMaxInactiveInterval();
+}
+```
+
+马上销毁Session：通过invalidate()方法
+
+```java
+@Override
+protected void doGet(HttpServletRequest req, HttpServletResponse resp) {
+    req.getSession().invalidate();
+}
+```
+
+##### Session配置修改
+
+在web.xml文件中的 <session-config>标签中修改，例如：修改生成的Session默认生命周期时长：
+
+```xml
+<session-config>
+    <session-timeout>20</session-timeout>
+</session-config>
+```
